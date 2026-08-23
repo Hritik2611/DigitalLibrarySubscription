@@ -114,28 +114,8 @@ Frontend runs on `http://localhost:5173` and proxies `/api` requests to the back
 
 ---
 
-## ☁️ Deployment (Free Tier)
-
-This app is designed to deploy as two separate services:
-
-| Service   | Where          | Notes                                                            |
-|-----------|----------------|-------------------------------------------------------------------|
-| Database  | MongoDB Atlas  | Free M0 cluster. Allow access from `0.0.0.0/0` in Network Access. |
-| Backend   | Render         | Root directory: `backend`. Build: `npm install`. Start: `npm start`. Add all backend env vars. |
-| Frontend  | Vercel         | Root directory: `frontend`. Framework: Vite. Add `VITE_API_URL` pointing to your Render backend URL. |
-
-After deploying, update the backend's CORS configuration to only allow your Vercel domain, then redeploy.
-
-> ⚠️ Render's free tier sleeps after 15 minutes of inactivity — the first request after idling can take 30–50 seconds to wake up.
-
----
-
 ## 🔑 Default Admin Access
 
 There's no seeded admin account — promote a user to admin manually by setting their `role` field to `"admin"` directly in the MongoDB `users` collection (via Atlas's Data Explorer or MongoDB Compass).
 
----
 
-## 📄 License
-
-This project is open for personal and educational use.
