@@ -21,8 +21,7 @@ setupSubscriptionNotifier();
 const app = express();
 
 // CORS
-app.use(cors());
-
+app.use(cors({ origin: ["https://digital-library-subscription.vercel.app", "http://localhost:5173"], credentials: true }));
 // Middleware to accept JSON data
 app.use(express.json());
 
