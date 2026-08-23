@@ -9,8 +9,10 @@ const crypto = require('crypto');
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    const normalizedEmail = email.trim().toLowerCase();
+    const isAdminEmail = normalizedEmail === process.env.ADMIN_EMAIL?.trim().toLowerCase();
 
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
       return res.status(400).json({ message: 'User with this email already exists' });
     }
@@ -23,13 +25,25 @@ const registerUser = async (req, res) => {
 
     const user = await User.create({
       name,
-      email,
+      email: normalizedEmail,
       password,
+      role: isAdminEmail ? 'admin' : 'student',
       otp,
       otpExpires: Date.now() + 10 * 60 * 1000, // OTP expires in 10 minutes
     });
 
     if (user) {
+      const canSendEmail = process.env.EMAIL_USER && process.env.EMAIL_PASS;
+
+      if (!canSendEmail) {
+        console.warn('EMAIL_USER / EMAIL_PASS are not configured. Returning OTP for local development.');
+        return res.status(201).json({
+          message: 'User registered. Email is not configured, so the OTP is shown for local development.',
+          userId: user._id,
+          devOtp: otp,
+        });
+      }
+
       try {
         await sendEmail({
           email: user.email,
@@ -43,6 +57,14 @@ const registerUser = async (req, res) => {
         });
       } catch (emailError) {
         console.error(emailError);
+        if (process.env.NODE_ENV !== 'production') {
+          return res.status(201).json({
+            message: 'User registered. Email could not be sent, so the OTP is shown for local development.',
+            userId: user._id,
+            devOtp: otp,
+          });
+        }
+
         return res.status(500).json({ message: 'User registered, but email could not be sent.' });
       }
     } else {
@@ -86,7 +108,8 @@ const verifyOTP = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (user && user.otp) {
         return res.status(400).json({ message: 'Please verify your email first.' });
@@ -125,7 +148,8 @@ const forgotPassword = async (req, res) => {
 
   // --- THIS IS THE CORRECTED LINE ---
   // Replaced the placeholder with your actual frontend address
-  const resetURL = `http://localhost:5173/reset-password/${resetToken}`;
+  const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const resetURL = `${frontendURL.replace(/\/$/, '')}/reset-password/${resetToken}`;
   
   const message = `<h1>Password Reset Request</h1><p>You requested a password reset. Please click this link to reset your password:</p><a href="${resetURL}">Reset Password</a><p>This link will expire in 10 minutes.</p><p>If you did not request this, please ignore this email.</p>`;
 

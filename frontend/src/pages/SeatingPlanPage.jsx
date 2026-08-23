@@ -16,43 +16,40 @@ const SeatingPlanPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchSeats();
-    checkMySeat();
-  }, []);
+    if (!userInfo?.token) return;
 
-  const fetchSeats = async () => {
-    try {
+    const loadSeatData = async () => {
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-      const { data } = await axios.get('/api/seats', config);
-      setSeats(data);
-    } catch (error) {
-      toast.error('Failed to load seats');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const checkMySeat = async () => {
-    try {
-      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-      const { data } = await axios.get('/api/seats/my-seat', config);
-      setMySeat(data.seatNumber);
-    } catch (error) {
-      // User doesn't have a seat yet
-    }
-  };
+      try {
+        const { data } = await axios.get('/api/seats', config);
+        setSeats(data);
+      } catch {
+        toast.error('Failed to load seats');
+      } finally {
+        setLoading(false);
+      }
+
+      try {
+        const { data } = await axios.get('/api/seats/my-seat', config);
+        setMySeat(data.seatNumber);
+      } catch {
+        // A 404 means the user has not booked a seat yet.
+      }
+    };
+
+    loadSeatData();
+  }, [userInfo]);
 
   const handleSeatClick = (seat) => {
     if (mySeat) {
       toast.info(`You already have Seat ${mySeat} booked`);
       return;
     }
-
     if (seat.status !== 'available') {
       toast.warning('This seat is not available');
       return;
     }
-
     setSelectedSeat(seat.seatNumber);
   };
 
@@ -61,7 +58,6 @@ const SeatingPlanPage = () => {
       toast.warning('Please select a seat first');
       return;
     }
-
     if (!gender) {
       toast.warning('Please select your gender');
       return;
@@ -70,11 +66,10 @@ const SeatingPlanPage = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
       await axios.post('/api/seats/select', { seatNumber: selectedSeat, gender }, config);
-      
-      // Store in localStorage to pass to PlansPage
+
       localStorage.setItem('selectedSeat', selectedSeat);
       localStorage.setItem('selectedGender', gender);
-      
+
       toast.success(`Seat ${selectedSeat} selected. Proceeding to payment...`);
       navigate('/plans');
     } catch (error) {
@@ -82,135 +77,112 @@ const SeatingPlanPage = () => {
     }
   };
 
-  const getSeatColor = (seat) => {
+  const getSeatStyle = (seat) => {
     if (seat.seatNumber === mySeat) {
-      return 'text-blue-500'; // Your seat
+      return 'text-brand-500 drop-shadow-[0_0_6px_rgba(112,66,240,0.5)]';
     }
     if (seat.status === 'blocked') {
-      return 'text-gray-400'; // Blocked
+      return 'text-gray-300';
     }
     if (seat.status === 'booked') {
-      return seat.bookedByGender === 'male' ? 'text-red-500' : 'text-pink-500';
+      return seat.bookedByGender === 'male' ? 'text-sky-400' : 'text-pink-400';
     }
     if (seat.seatNumber === selectedSeat) {
-      return 'text-yellow-500'; // Selected
+      return 'text-accent-500 drop-shadow-[0_0_8px_rgba(255,159,28,0.6)]';
     }
-    return 'text-green-600'; // Available
+    return 'text-emerald-500';
   };
 
   const getSeatCursor = (seat) => {
     if (mySeat || seat.status !== 'available') {
-      return 'cursor-not-allowed';
+      return 'cursor-not-allowed opacity-90';
     }
     return 'cursor-pointer hover:scale-110';
   };
 
   if (loading) {
     return (
-      <div className="bg-gray-100 min-h-screen">
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#f2f0ff,_#f7f6fb_55%)]">
         <Header />
-        <div className="container mx-auto px-6 py-12 text-center">
-          <p>Loading seating plan...</p>
+        <div className="container mx-auto px-6 py-12 max-w-6xl">
+          <div className="skeleton h-8 w-64 mx-auto mb-8" />
+          <div className="surface-card p-6 grid grid-cols-10 gap-3">
+            {Array.from({ length: 100 }).map((_, i) => (
+              <div key={i} className="skeleton h-10 rounded-lg" />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#f2f0ff,_#f7f6fb_55%)]">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
+        <h1 className="text-3xl font-display font-extrabold text-center text-gray-900 mb-1">
           Library Seating Plan
         </h1>
+        <p className="text-center text-gray-500 mb-6">Tap an available seat to reserve your spot.</p>
 
         {/* Legend */}
-        <div className="bg-white p-4 rounded-lg shadow-md mb-6 max-w-4xl mx-auto">
-          <h3 className="font-semibold mb-3">Legend:</h3>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <div className="flex items-center">
-              <MdEventSeat className="text-green-600 text-2xl mr-2" />
-              <span>Available</span>
-            </div>
-            <div className="flex items-center">
-              <MdEventSeat className="text-red-500 text-2xl mr-2" />
-              <span>Booked (Male)</span>
-            </div>
-            <div className="flex items-center">
-              <MdEventSeat className="text-pink-500 text-2xl mr-2" />
-              <span>Booked (Female)</span>
-            </div>
-            {mySeat && (
-              <div className="flex items-center">
-                <MdEventSeat className="text-blue-500 text-2xl mr-2" />
-                <span>Your Seat</span>
-              </div>
-            )}
-            <div className="flex items-center">
-              <MdEventSeat className="text-yellow-500 text-2xl mr-2" />
-              <span>Selected</span>
-            </div>
-            <div className="flex items-center">
-              <MdEventSeat className="text-gray-400 text-2xl mr-2" />
-              <span>Blocked</span>
-            </div>
+        <div className="surface-card p-4 mb-6 max-w-4xl mx-auto">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 justify-center text-sm text-gray-600">
+            <div className="flex items-center gap-2"><MdEventSeat className="text-emerald-500 text-xl" /> Available</div>
+            <div className="flex items-center gap-2"><MdEventSeat className="text-sky-400 text-xl" /> Booked (Male)</div>
+            <div className="flex items-center gap-2"><MdEventSeat className="text-pink-400 text-xl" /> Booked (Female)</div>
+            {mySeat && <div className="flex items-center gap-2"><MdEventSeat className="text-brand-500 text-xl" /> Your Seat</div>}
+            <div className="flex items-center gap-2"><MdEventSeat className="text-accent-500 text-xl" /> Selected</div>
+            <div className="flex items-center gap-2"><MdEventSeat className="text-gray-300 text-xl" /> Blocked</div>
           </div>
         </div>
 
-        {/* Seating Grid - 10x10 = 100 seats */}
-        <div className="bg-white p-6 rounded-lg shadow-lg max-w-6xl mx-auto">
-          <div className="grid grid-cols-10 gap-2 sm:gap-3">
+        {/* Seating Grid */}
+        <div className="surface-card p-6 max-w-6xl mx-auto overflow-x-auto">
+          <div className="grid grid-cols-10 gap-2 sm:gap-3 min-w-[600px]">
             {seats.map((seat) => (
-              <div
+              <button
                 key={seat.seatNumber}
                 onClick={() => handleSeatClick(seat)}
-                className={`flex flex-col items-center justify-center p-2 transition-all duration-200 ${getSeatCursor(seat)}`}
+                className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-150 ${getSeatCursor(seat)}`}
                 title={`Seat ${seat.seatNumber} - ${seat.status === 'available' ? 'Available' : seat.status === 'blocked' ? 'Blocked' : `Booked by ${seat.bookedBy?.name || 'User'}`}`}
               >
-                <MdEventSeat 
-                  className={`text-3xl sm:text-4xl ${getSeatColor(seat)}`}
-                />
-                <span className="text-xs font-semibold mt-1">{seat.seatNumber}</span>
-              </div>
+                <MdEventSeat className={`text-3xl sm:text-4xl transition-colors ${getSeatStyle(seat)}`} />
+                <span className="text-xs font-semibold mt-1 text-gray-500">{seat.seatNumber}</span>
+              </button>
             ))}
           </div>
         </div>
 
         {/* Selection Panel */}
         {!mySeat && (
-          <div className="bg-white p-6 rounded-lg shadow-md mt-6 max-w-2xl mx-auto">
-            <h3 className="text-xl font-semibold mb-4">
-              {selectedSeat ? `Seat ${selectedSeat} Selected` : 'Select Your Seat'}
+          <div className="surface-card p-6 mt-6 max-w-2xl mx-auto animate-fade-in-up">
+            <h3 className="text-xl font-display font-bold mb-4 text-gray-900">
+              {selectedSeat ? `Seat ${selectedSeat} selected` : 'Select your seat'}
             </h3>
 
             {selectedSeat && (
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2">
-                  Select Your Gender *
+              <div className="mb-5">
+                <label className="block text-gray-700 text-sm font-semibold mb-2">
+                  Select your gender
                 </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="male"
-                      checked={gender === 'male'}
-                      onChange={(e) => setGender(e.target.value)}
-                      className="mr-2"
-                    />
-                    Male
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="female"
-                      checked={gender === 'female'}
-                      onChange={(e) => setGender(e.target.value)}
-                      className="mr-2"
-                    />
-                    Female
-                  </label>
+                <div className="flex gap-3">
+                  {['male', 'female'].map((g) => (
+                    <label
+                      key={g}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 cursor-pointer transition-colors font-medium ${
+                        gender === g ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio" name="gender" value={g}
+                        checked={gender === g}
+                        onChange={(e) => setGender(e.target.value)}
+                        className="hidden"
+                      />
+                      {g === 'male' ? '🚹 Male' : '🚺 Female'}
+                    </label>
+                  ))}
                 </div>
               </div>
             )}
@@ -218,30 +190,22 @@ const SeatingPlanPage = () => {
             <button
               onClick={handleProceedToPayment}
               disabled={!selectedSeat || !gender}
-              className={`w-full font-bold py-3 px-4 rounded-lg transition duration-300 ${
-                selectedSeat && gender
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
+              className={selectedSeat && gender ? 'btn-primary w-full py-3' : 'w-full py-3 rounded-[0.9rem] bg-gray-200 text-gray-400 font-semibold cursor-not-allowed'}
             >
               Proceed to Payment
             </button>
           </div>
         )}
 
-        {/* Already Booked Message */}
         {mySeat && (
-          <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg shadow-md mt-6 max-w-2xl mx-auto text-center">
-            <h3 className="text-xl font-semibold text-blue-800 mb-2">
-              You have already booked Seat {mySeat}
+          <div className="surface-card p-6 mt-6 max-w-2xl mx-auto text-center animate-fade-in-up">
+            <h3 className="text-xl font-display font-bold text-gray-900 mb-2">
+              You've already booked Seat {mySeat}
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-500 mb-5">
               Your seat is reserved for the duration of your subscription.
             </p>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg"
-            >
+            <button onClick={() => navigate('/dashboard')} className="btn-primary px-6 py-2.5">
               Go to Dashboard
             </button>
           </div>

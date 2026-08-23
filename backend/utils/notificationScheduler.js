@@ -24,7 +24,7 @@ const setupSubscriptionNotifier = () => {
                 for (const sub of expiringSubscription) {
                     const mailOptions = {
                         email: sub.user.email,
-                        subjet: 'Your Library Subscription is Expiring Soon!',
+                        subject: 'Your Library Subscription is Expiring Soon!',
                          html: `
               <h1>Subscription Renewal Reminder</h1>
               <p>Hello ${sub.user.name},</p>

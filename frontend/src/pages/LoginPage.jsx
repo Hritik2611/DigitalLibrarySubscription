@@ -9,19 +9,18 @@ import { setLoading, setError, loginSuccess } from '../store/authSlice';
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const { loading, userInfo } = useSelector((state) => state.auth);
 
-  // If a user is already logged in, redirect them away from the login page
   useEffect(() => {
     if (userInfo) {
       if (userInfo.role === 'admin') {
-        navigate('/admin/dashboard')
+        navigate('/admin/dashboard');
       } else {
-      navigate('/dashboard'); // We will create this dashboard page next
+        navigate('/dashboard');
       }
     }
   }, [navigate, userInfo]);
@@ -33,7 +32,6 @@ const LoginPage = () => {
       const { data } = await axios.post('/api/users/login', { email, password });
       dispatch(loginSuccess(data));
       toast.success('Login Successful!');
-      // navigate('/dashboard');
     } catch (err) {
       const message = err.response?.data?.message || 'Invalid email or password';
       dispatch(setError(message));
@@ -43,39 +41,45 @@ const LoginPage = () => {
 
   return (
     <AuthLayout>
-      <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">Welcome Back!</h2>
-      <p className="text-center text-gray-600 mb-8">Sign in to continue.</p>
-      
-      <form onSubmit={submitHandler}>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">Email Address</label>
+      <h2 className="text-3xl font-display font-bold text-gray-900 mb-2">Welcome back</h2>
+      <p className="text-gray-500 mb-8">Sign in to continue to your library account.</p>
+
+      <form onSubmit={submitHandler} className="space-y-5">
+        <div>
+          <label className="block text-gray-700 text-sm font-semibold mb-1.5" htmlFor="email">
+            Email address
+          </label>
           <input
             type="email" id="email" value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700"
+            className="input-field"
             placeholder="you@example.com" required
           />
         </div>
-        <div className="mb-6">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">Password</label>
-          <Link to='/forgot-password' className='text-sm text-blue-600 hover:underline'>Forgot Password?</Link>
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-gray-700 text-sm font-semibold" htmlFor="password">
+              Password
+            </label>
+            <Link to="/forgot-password" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+              Forgot password?
+            </Link>
+          </div>
           <input
             type="password" id="password" value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700"
+            className="input-field"
             placeholder="••••••••••" required
           />
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none transition duration-300 disabled:bg-blue-300"
-        >
-          {loading ? 'Signing In...' : 'Sign In'}
+        <button type="submit" disabled={loading} className="btn-primary w-full py-3 mt-2">
+          {loading ? 'Signing in…' : 'Sign in'}
         </button>
-        <p className="text-center text-gray-600 mt-8">
+        <p className="text-center text-gray-500 pt-4">
           Don't have an account?{' '}
-          <Link to="/register" className="font-bold text-blue-600 hover:underline">Sign Up</Link>
+          <Link to="/register" className="font-semibold text-brand-600 hover:text-brand-700">
+            Sign up
+          </Link>
         </p>
       </form>
     </AuthLayout>
@@ -83,4 +87,3 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
-
