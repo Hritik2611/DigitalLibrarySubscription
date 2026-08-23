@@ -118,4 +118,5 @@ Frontend runs on `http://localhost:5173` and proxies `/api` requests to the back
 
 There's no seeded admin account — promote a user to admin manually by setting their `role` field to `"admin"` directly in the MongoDB `users` collection (via Atlas's Data Explorer or MongoDB Compass).
 
-
+##
+Live Link https://digital-library-subscription.vercel.app/login
